@@ -5,8 +5,19 @@ import styles from "./cardpost.module.css";
 import Link from "next/link";
 import { ThumbsUpButton } from "./ThumbsUpButton";
 import { ModalComment } from "../ModalComment";
+import { useMutation } from "@tanstack/react-query";
 
 export const CardPost = ({ post, highlight, rating, category, isFetching }) => {
+  const thumbsMutation = useMutation ({
+    mutationFn: (postData) => {
+      return fetch(`http://localhost:3000/api/thumbs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json"},
+        body: JSON.stringify(postData),
+      })
+    }
+  })
+
   return (
     <article className={styles.card} style={{ width: highlight ? 993 : 486 }}>
       <header className={styles.header}>
@@ -25,7 +36,10 @@ export const CardPost = ({ post, highlight, rating, category, isFetching }) => {
       </section>
       <footer className={styles.footer}>
         <div className={styles.actions}>
-          <form>
+          <form onClick={(event) => {
+            event.preventDefault();
+            thumbsMutation.mutate({ slug: post.slug })
+          }}>
             <ThumbsUpButton disable={isFetching} />
             <p>{post.likes}</p>
           </form>
