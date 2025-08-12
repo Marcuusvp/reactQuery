@@ -5,16 +5,30 @@ import styles from "./cardpost.module.css";
 import Link from "next/link";
 import { ThumbsUpButton } from "./ThumbsUpButton";
 import { ModalComment } from "../ModalComment";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-export const CardPost = ({ post, highlight, rating, category, isFetching }) => {
+export const CardPost = ({ post, highlight, rating, category, isFetching, currentPage }) => {
+  const queryClient = useQueryClient();
+
   const thumbsMutation = useMutation ({
     mutationFn: (postData) => {
       return fetch(`http://localhost:3000/api/thumbs`, {
         method: "POST",
         headers: { "Content-Type": "application/json"},
         body: JSON.stringify(postData),
+      }).then((response ) => {
+        if(!response.ok){
+          throw new Error('HTTP error!')
+        }
       })
+    },
+    onSuccess: () => {
+      //invalidacao de query's
+      queryClient.invalidateQueries(["post", post.slug]);
+      queryClient.invalidateQueries(["posts", post.currentPage])
+    },
+    onError: (error, variables) => {
+      console.error(`Erro ao salvar o thumbsup para o slug: ${variables.slug}`, {error})
     }
   })
 
@@ -41,6 +55,11 @@ export const CardPost = ({ post, highlight, rating, category, isFetching }) => {
             thumbsMutation.mutate({ slug: post.slug })
           }}>
             <ThumbsUpButton disable={isFetching} />
+            {thumbsMutation.isError && (
+              <p className={styles.thumbsUpButtonMessage}>
+                Oops, ocorreu um erro ao salvar o like!
+              </p>
+            )}
             <p>{post.likes}</p>
           </form>
           <div>
